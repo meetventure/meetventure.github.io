@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Meet Patel | Mortgage Agent Level 1</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <span class="brand-text"><span class="name">Meet Patel</span><span class="role">Mortgage Agent Level 1</span></span>
+    </div>
+    <div class="links">
+      <a href="#services">Services</a>
+      <a href="#games">Tools</a>
+      <a href="#documents">Documents</a>
+      <a href="#market">Market</a>
+      <a href="#cases">Stories</a>
+      <a href="#blog">Blog</a>
+    </div>
+    <button class="btn gold" onclick="document.getElementById('book').scrollIntoView({behavior:'smooth'})">Book a Call</button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Your Mortgage, Explained Plainly</div>
+      <h1>Know the numbers<br><span>before you sign anything.</span></h1>
+      <p class="lead">Drag the sliders — price, down payment, even the rate. Watch the real cost of a home move in real time, the same way I break it down for clients before we ever talk paperwork.</p>
+      <div class="actions">
+        <button class="btn gold" onclick="document.getElementById('games').scrollIntoView({behavior:'smooth'})">Play with the numbers</button>
+        <button class="btn ghost" onclick="document.getElementById('book').scrollIntoView({behavior:'smooth'})">Book a 15-min call</button>
+      </div>
+    </div>
+
+    <div class="ticker-card">
+      <div class="label">Home Price</div>
+      <div class="ticker-price mono" id="hp-display">$650,000</div>
+
+      <div class="slider-row">
+        <div class="slider-top"><span>Purchase price</span><span class="val mono" id="hp-val">$650,000</span></div>
+        <input type="range" id="hp-slider" min="300000" max="2000000" step="5000" value="650000">
+      </div>
+      <div class="slider-row">
+        <div class="slider-top"><span>Down payment</span><span class="val mono" id="dp-val">10% · $65,000</span></div>
+        <input type="range" id="dp-slider" min="5" max="35" step="1" value="10">
+      </div>
+      <div class="slider-row">
+        <div class="slider-top"><span>Interest rate (5-yr fixed)<span class="rate-badge" id="rate-suggested-badge">suggested</span></span><span class="val mono" id="rate-val">3.99%</span></div>
+        <input type="range" id="rate-slider" min="3.00" max="7.00" step="0.05" value="3.99">
+      </div>
+
+      <div class="ticker-result">
+        <div><div class="l">Est. Monthly Payment</div></div>
+        <div class="v mono" id="hero-monthly">$3,187</div>
+      </div>
+      <div class="ticker-sub" id="hero-cmhc-note">Includes CMHC insurance premium (financed) · 25-yr amortization</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SERVICES & JOURNEY ================= -->
+<section id="services" class="alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">What I Help With</div>
+      <h2>Mortgages, for wherever you're starting from</h2>
+      <p>Whether this is your first home or your fifth mortgage renewal, the approach is the same: understand your real situation, then find the option that actually fits it.</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card"><div class="icon">&#127968;</div><h3>First-Time Buyers</h3><p>Pre-approval, down payment strategy, and a plain-language walkthrough of your first purchase.</p></div>
+      <div class="service-card"><div class="icon">&#128257;</div><h3>Renewals</h3><p>Your current lender's offer isn't the only one. I check the market before you sign anything.</p></div>
+      <div class="service-card"><div class="icon">&#128176;</div><h3>Refinancing</h3><p>Access equity or restructure your mortgage around your current goals.</p></div>
+      <div class="service-card"><div class="icon">&#128188;</div><h3>Self-Employed</h3><p>Financing built around business income, not a T4 — I know which lenders work with it.</p></div>
+      <div class="service-card"><div class="icon">&#127760;</div><h3>Newcomers to Canada</h3><p>Mortgage programs for new permanent residents and eligible work permit holders.</p></div>
+      <div class="service-card"><div class="icon">&#128200;</div><h3>Investment Properties</h3><p>Financing for rental and investment purchases, with your portfolio goals in mind.</p></div>
+    </div>
+
+    <div class="sec-head">
+      <div class="eyebrow">How It Works</div>
+      <h2>The journey, start to close</h2>
+    </div>
+    <div class="journey-row">
+      <div class="journey-step"><div class="journey-num">1</div><h4>15-Min Call</h4><p>We talk through your situation — no forms, no pressure.</p></div>
+      <div class="journey-step"><div class="journey-num">2</div><h4>Your Real Options</h4><p>I lay out the scenarios that actually apply to you, numbers included.</p></div>
+      <div class="journey-step"><div class="journey-num">3</div><h4>Pre-Approval</h4><p>Documents gathered, application submitted, firm number in hand.</p></div>
+      <div class="journey-step"><div class="journey-num">4</div><h4>Closing & Beyond</h4><p>I stay in the loop through closing — and for the renewal after that.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GAMES ================= -->
+<section id="games">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Financial Literacy Tools</div>
+      <h2>Three ways to understand your mortgage</h2>
+      <p>These are the exact conversations I have with clients — turned into something you can play with yourself, before we ever get on a call.</p>
+    </div>
+
+    <div class="games-grid">
+      <div class="game-tab active" data-panel="dial"><div class="icon">&#9678;</div><h3>The Down Payment Dial</h3><p>See how down payment and rate together change your payment — and when CMHC kicks in.</p></div>
+      <div class="game-tab" data-panel="rvb"><div class="icon">&#8644;</div><h3>Rent vs. Buy</h3><p>Compare paying rent to paying yourself, over time, in your own market.</p></div>
+      <div class="game-tab" data-panel="afford"><div class="icon">&#10003;</div><h3>What Can You Afford?</h3><p>A 30-second gut check on your realistic price range, based on income &amp; debts.</p></div>
+    </div>
+
+    <div class="game-panel active" id="panel-dial">
+      <h4>The Down Payment Dial</h4>
+      <div class="desc">Drag the dial or the rate below. Under 20% down, CMHC mortgage default insurance is required by law — this shows exactly what that costs at any rate.</div>
+      <div class="panel-grid">
+        <div class="dial-wrap">
+          <svg width="260" height="190" viewBox="0 0 280 200">
+            <path d="M 30 170 A 110 110 0 1 1 250 170" fill="none" stroke="#B3B7BA" stroke-width="16" stroke-linecap="round"/>
+            <path id="dial-arc" d="M 30 170 A 110 110 0 1 1 250 170" fill="none" stroke="#262E36" stroke-width="16" stroke-linecap="round" stroke-dasharray="0 600"/>
+          </svg>
+          <div class="dial-readout">
+            <div class="big mono" id="dial-pct">10%</div>
+            <div class="small">down payment</div>
+          </div>
+          <input type="range" id="dial-slider" min="5" max="30" step="1" value="10" style="width:230px; margin-top:12px;">
+          <div class="slider-row" style="width:230px; margin-top:16px;">
+            <div class="slider-top"><span>Rate</span><span class="val mono" id="dial-rate-val">3.99%</span></div>
+            <input type="range" id="dial-rate-slider" min="3.00" max="7.00" step="0.05" value="3.99">
+          </div>
+        </div>
+        <div>
+          <div class="stat-line"><span class="l">Home price</span><span class="v mono" id="dial-price">$650,000</span></div>
+          <div class="stat-line"><span class="l">Down payment</span><span class="v mono" id="dial-down">$65,000</span></div>
+          <div class="stat-line"><span class="l">CMHC insurance premium</span><span class="v mono gold" id="dial-cmhc">$21,073</span></div>
+          <div class="stat-line"><span class="l">Total mortgage</span><span class="v mono" id="dial-total">$606,073</span></div>
+          <div class="stat-line"><span class="l">Est. monthly payment</span><span class="v mono gold" id="dial-monthly">$3,148</span></div>
+          <div class="stat-line"><span class="l">Insurance required?</span><span class="v mono" id="dial-required">Yes — under 20% down</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-panel" id="panel-rvb">
+      <h4>Rent vs. Buy, Over Time</h4>
+      <div class="desc">Adjust your current rent, a comparable purchase price, and the rate, then see how the math shifts over the years.</div>
+      <div class="panel-grid">
+        <div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Monthly rent today</span><span class="val mono" id="rvb-rent-val">$2,400</span></div>
+            <input type="range" id="rvb-rent" min="1200" max="4500" step="50" value="2400">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Comparable home price</span><span class="val mono" id="rvb-price-val">$650,000</span></div>
+            <input type="range" id="rvb-price" min="300000" max="1500000" step="5000" value="650000">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Rate (5-yr fixed)</span><span class="val mono" id="rvb-rate-val">4.14%</span></div>
+            <input type="range" id="rvb-rate" min="3.00" max="7.00" step="0.05" value="4.14">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Years from now</span><span class="val mono" id="rvb-years-val">10 years</span></div>
+            <input type="range" id="rvb-years" min="3" max="25" step="1" value="10">
+          </div>
+          <div class="ticker-sub">Assumes 3% annual rent growth, 3% annual home appreciation, 20% down, 25-yr amortization. Simplified — doesn't include maintenance, closing costs, or opportunity cost of your down payment.</div>
+        </div>
+        <div>
+          <div class="rvb-bars">
+            <div class="rvb-col"><div class="rvb-val mono" id="rvb-buy-val">$0</div><div class="rvb-bar buy" id="rvb-buy-bar" style="height:10%"></div><div class="rvb-label">Equity Built (Buy)</div></div>
+            <div class="rvb-col"><div class="rvb-val mono" id="rvb-rent-total">$0</div><div class="rvb-bar rent" id="rvb-rent-bar" style="height:10%"></div><div class="rvb-label">Total Rent Paid</div></div>
+          </div>
+          <div class="ticker-sub" id="rvb-summary" style="text-align:center; margin-top:10px; color:var(--gold-deep); font-weight:600;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-panel" id="panel-afford">
+      <h4>What Can You Actually Afford?</h4>
+      <div class="desc">A simplified version of the debt-service math lenders use. Not a pre-approval — just a realistic starting point.</div>
+      <div class="panel-grid">
+        <div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Annual household income</span><span class="val mono" id="af-income-val">$110,000</span></div>
+            <input type="range" id="af-income" min="40000" max="350000" step="2500" value="110000">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Monthly debt payments</span><span class="val mono" id="af-debt-val">$450</span></div>
+            <input type="range" id="af-debt" min="0" max="3000" step="25" value="450">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Down payment saved</span><span class="val mono" id="af-down-val">$50,000</span></div>
+            <input type="range" id="af-down" min="10000" max="400000" step="5000" value="50000">
+          </div>
+          <div class="slider-row">
+            <div class="slider-top"><span>Qualifying rate (stress test)</span><span class="val mono" id="af-rate-val">5.25%</span></div>
+            <input type="range" id="af-rate" min="4.00" max="8.00" step="0.05" value="5.25">
+          </div>
+        </div>
+        <div>
+          <div class="meter-badge">
+            <div class="num mono" id="af-max-price">$0</div>
+            <div class="cap">Estimated max home price</div>
+          </div>
+          <div class="meter-track"><div class="meter-fill" id="af-meter" style="width:0%"></div></div>
+          <div class="stat-line"><span class="l">Est. max monthly housing cost</span><span class="v mono" id="af-max-housing">$0</span></div>
+          <div class="stat-line"><span class="l">Est. max mortgage</span><span class="v mono" id="af-max-mortgage">$0</span></div>
+          <div class="ticker-sub">Uses simplified 39% gross debt service / 44% total debt service guidelines and 25-yr amortization. Your real number depends on credit, lender, and property type — this is a starting point for the conversation.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DOCUMENT CHECKLIST ================= -->
+<section id="documents" class="alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Get Prepared</div>
+      <h2>What documents will you actually need?</h2>
+      <p>Pick the situation that sounds like you. Check things off as you gather them — when you're fully ready, you'll see it turn green.</p>
+    </div>
+    <div class="doc-tabs" id="doc-tabs"></div>
+    <div class="doc-panel">
+      <div class="doc-progress">
+        <div class="meter-track"><div class="meter-fill" id="doc-meter" style="width:0%"></div></div>
+        <div class="doc-count mono" id="doc-count">0 / 0 ready</div>
+      </div>
+      <div class="doc-list" id="doc-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MARKET PULSE ================= -->
+<section id="market">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Local Market Pulse</div>
+      <h2>What's actually happening across Ontario</h2>
+      <p>Click a region on the map to see the price trend for its major cities since 2020, or check the tab on rates and bond yields.</p>
+    </div>
+
+    <div class="market-tabs">
+      <div class="market-tab-btn active" data-view="map">Regional Map</div>
+      <div class="market-tab-btn" data-view="rates">Rates &amp; Bond Yields</div>
+    </div>
+
+    <div class="market-view active" id="view-map">
+      <div class="map-grid">
+        <svg id="ontario-map" viewBox="0 0 620 420" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="market-detail-card" id="map-detail"></div>
+      </div>
+      <div class="estimate-note">Cities marked "estimated" don't have a confirmed current board figure in my research — they're modeled from the regional average and nearby comparables. Ask me for a hyper-local number before making a decision.</div>
+    </div>
+
+    <div class="market-view" id="view-rates">
+      <div class="rate-chart-card">
+        <div class="rate-chart-legend">
+          <div class="chip" id="legend-boc"><span class="dot" style="background:#262E36"></span> BoC Overnight Rate (policy decisions)</div>
+          <div class="chip" id="legend-bond"><span class="dot" style="background:#8C959E"></span> Canada 5-Year Bond Yield (drives fixed mortgage rates)</div>
+        </div>
+        <div class="rate-chart-hint">Click a line above to hide/show it · hover any point on the chart for the exact date and rate</div>
+        <div style="position:relative;">
+          <svg id="rate-chart" class="chart" viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="rate-tooltip"></div>
+        </div>
+        <div class="rate-callout">
+          <div class="box"><div class="num">5.00%</div><div class="lbl">Cycle peak, July 2023</div></div>
+          <div class="box"><div class="num">2.25%</div><div class="lbl">Current rate, held since Oct 2025</div></div>
+          <div class="box"><div class="num">9</div><div class="lbl">Cuts between Jun 2024 &amp; Oct 2025</div></div>
+          <div class="box"><div class="num">~3.2%</div><div class="lbl">5-yr bond yield, mid-2026</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="market-note">Regional prices sourced from TRREB, Cornerstone Association of REALTORS®, and RAHB, June/July 2026. Historical city-level trends (2020–2026) are modeled using each city's current benchmark applied to the broader GTA-wide annual growth pattern — directional, not exact. Rate history compiled from Bank of Canada announcements and financial press reporting; confirm exact dates at bankofcanada.ca. All figures shift — ask me for the latest before making a decision.</div>
+  </div>
+</section>
+
+<!-- ================= CASE STUDIES ================= -->
+<section id="cases" class="alt">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">The Mortgage Diaries</div>
+      <h2>Names changed. Awkward moments kept.</h2>
+      <p>Every household is a little chaotic in its own special way — mine included. Here's how the numbers actually played out for a few of them.</p>
+    </div>
+    <div class="case-grid" id="case-grid"></div>
+  </div>
+</section>
+
+<!-- ================= BLOG ================= -->
+<section id="blog">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">From the Blog</div>
+      <h2>Mortgage stuff, explained without the jargon (mostly)</h2>
+      <p>Government rebates, insurance headaches, and the occasional rant — scroll sideways, there's a lot here.</p>
+    </div>
+    <div class="blog-scroll-wrap">
+      <button class="blog-scroll-btn left" onclick="document.getElementById('blog-grid').scrollBy({left:-320, behavior:'smooth'})">&#8249;</button>
+      <button class="blog-scroll-btn right" onclick="document.getElementById('blog-grid').scrollBy({left:320, behavior:'smooth'})">&#8250;</button>
+      <div class="blog-grid" id="blog-grid"></div>
+    </div>
+  </div>
+</section>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <button class="close-btn" onclick="closeModal()">&times;</button>
+    <div class="tag" id="modal-tag"></div>
+    <h3 id="modal-title"></h3>
+    <div class="meta" id="modal-meta"></div>
+    <div class="content" id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ================= ABOUT ================= -->
+<section id="about">
+  <div class="wrap about-grid">
+    <img class="about-photo" src="images/meet-patel-headshot.jpg" alt="Meet Patel">
+    <div>
+      <h3>Hi, I'm Meet.</h3>
+      <div class="role">Mortgage Agent · Professional Number-Explainer · Occasional Dinner Party Bore</div>
+      <p>Yes, "Meet" — like the verb. I've heard every joke ("nice to Meet you, Meet") and I still laugh every single time, so feel free.</p>
+      <p>I got into mortgages because I genuinely love the moment a client's face changes from "I have no idea what any of this means" to "oh — <em>that's</em> how it works." That little lightbulb moment is basically my whole personality at work.</p>
+      <p>Outside of spreadsheets, I'm currently building a wood fencing business on the side — because apparently juggling one industry wasn't chaotic enough for me. I like people, I like numbers, and I really like combining the two without anyone losing their mind in the process.</p>
+      <p>If you want an agent who actually picks up the phone, explains things like a human being, and might crack a mediocre joke while doing it — let's talk.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BOOK A CALL ================= -->
+<section id="book">
+  <div class="wrap">
+    <div class="book-card">
+      <h2>Let's talk for 15 minutes.</h2>
+      <p>No forms, no pressure — just a quick call to figure out what actually applies to your situation.</p>
+      <div class="book-slots">
+        <div class="book-slot">Today, 2:00 PM</div>
+        <div class="book-slot">Today, 4:30 PM</div>
+        <div class="book-slot">Tomorrow, 10:00 AM</div>
+        <div class="book-slot">Tomorrow, 1:00 PM</div>
+      </div>
+      <!-- Replace this href with your real Calendly / Cal.com booking link -->
+      <a class="btn gold" href="https://calendly.com/YOUR-LINK-HERE" target="_blank" rel="noopener">Book a 15-Minute Call</a>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="f-grid">
+      <div class="f-contact">
+        <strong>Meet Patel</strong>
+        Mortgage Agent Level 1 · Lic #M25002923<br>
+        226-978-8858 · meetventure@gmail.com
+      </div>
+      <div class="f-contact">
+        <strong>Pegasus Mortgage Lending Center Inc.</strong>
+        FSRA Lic #11479
+      </div>
+    </div>
+    <hr style="border:none; height:1px; background:var(--line); margin-bottom:22px;">
+    <div class="disclaimer">
+      All figures and tools on this site are simplified estimates for educational purposes only and do not constitute a mortgage pre-approval, quote, or financial advice. Actual rates, CMHC premiums, qualification criteria, and payments depend on your individual application, lender, and current market conditions at time of application. Local market and rate figures are directional estimates and may not reflect current conditions — contact Meet Patel directly for up-to-date, personalized numbers. Mortgage Agent Level 1, licensed with Pegasus Mortgage Lending Center Inc., FSRA Lic #11479.
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
