@@ -42,6 +42,7 @@ The site includes a phone-specific hamburger menu (shows automatically under 920
 
 ## Before you publish
 
+- **Replace the social media placeholder links** - search for `YOUR-HANDLE` in `index.html` (appears 8 times: 4 icons in the contact strip right after your bio, 4 matching icons in the footer). Right now they point to `instagram.com/YOUR-HANDLE`, `tiktok.com/@YOUR-HANDLE`, `linkedin.com/in/YOUR-HANDLE`, and `facebook.com/YOUR-HANDLE` - swap each `YOUR-HANDLE` for your actual username/page name on that platform.
 - Replace the placeholder Calendly link in `index.html` - search for `YOUR-LINK-HERE`.
 - Market/rate figures embedded in `script.js` (`MARKET_DATA`, `GROWTH_RATES`, `BOC_MEETINGS`, `BOND_YIELDS`) should be refreshed periodically - they were current as of when this build was made, but real estate and rate data move.
 - This is marketing material for a mortgage agent - have it reviewed by your Principal Broker before it goes live, per FSRA requirements.

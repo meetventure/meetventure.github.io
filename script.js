@@ -1,4 +1,30 @@
 /* =====================================================================
+   SLIDER FILL (the dark-to-light "progress bar" look on every slider)
+   Native <input type=range> doesn't support a filled-left/empty-right
+   look on its own in most browsers, so this fills in the gap: it reads
+   the slider's current value as a % of its min-max range, then paints
+   the track with a two-color gradient split at that %. Applied to EVERY
+   range slider on the page automatically (see the bottom of this block),
+   so a new slider added later only needs the "range-fill" class added in
+   the HTML - no extra JS required.
+===================================================================== */
+function updateSliderFill(slider){
+  const min = parseFloat(slider.min) || 0;
+  const max = parseFloat(slider.max) || 100;
+  const val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  // dark ink color up to the thumb, light track color after it
+  slider.style.background = `linear-gradient(to right, var(--ink) 0%, var(--ink) ${pct}%, var(--line) ${pct}%, var(--line) 100%)`;
+}
+function initAllSliderFills(){
+  document.querySelectorAll('input[type=range]').forEach(slider=>{
+    updateSliderFill(slider);
+    slider.addEventListener('input', ()=>updateSliderFill(slider));
+  });
+}
+initAllSliderFills();
+
+/* =====================================================================
    MOBILE NAV (hamburger menu)
    Below 920px width, the hamburger icon (#nav-toggle) in the nav bar shows
    up instead of the desktop link row. Tapping it calls toggleMobileNav(),
@@ -510,7 +536,7 @@ rateSlider.addEventListener('input', ()=>{ rateTouchedByUser = true; document.ge
 function updateHero(){
   const price = parseFloat(hpSlider.value);
   const pct = parseFloat(dpSlider.value);
-  if(!rateTouchedByUser){ rateSlider.value = suggestedRate(pct); }
+  if(!rateTouchedByUser){ rateSlider.value = suggestedRate(pct); updateSliderFill(rateSlider); }
   const rate = parseFloat(rateSlider.value);
   const down = price*pct/100;
   const base = price - down;
@@ -581,7 +607,7 @@ dialRateSlider.addEventListener('input', ()=>{ dialRateTouched = true; updateDia
 function updateDial(){
   const pct = parseFloat(dialSlider.value);
   const price = parseFloat(hpSlider.value);
-  if(!dialRateTouched){ dialRateSlider.value = suggestedRate(pct); }
+  if(!dialRateTouched){ dialRateSlider.value = suggestedRate(pct); updateSliderFill(dialRateSlider); }
   const rate = parseFloat(dialRateSlider.value);
   const down = price*pct/100;
   const base = price - down;
