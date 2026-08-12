@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- ===================================================================
+       SITEMAP for meetventure.ca
+
+       Right now the site is a single page, so there is exactly one URL
+       below. That is correct and not a problem - a one-URL sitemap still
+       tells Google the site exists and gets it crawled.
+
+       IMPORTANT - two rules to follow when editing this file:
+
+       1. Only list URLs that actually load. A sitemap pointing at pages
+          that return 404 is worse than a short sitemap, because Search
+          Console will report crawl errors against your domain.
+
+       2. Do NOT add section anchors (like /#services or /#tools). Google
+          treats everything after the # as the same page as the homepage,
+          so those entries add nothing and can look manipulative.
+
+       When you split the site into real pages (see the SEO plan), just
+       uncomment the relevant block at the bottom and update <lastmod>.
+
+       <lastmod> format is YYYY-MM-DD. Update it whenever you meaningfully
+       change a page's content - it is a hint to Google to re-crawl.
+  =================================================================== -->
+
+  <url>
+    <loc>https://meetventure.ca/</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- ===================================================================
+       FUTURE PAGES - uncomment each one ONLY after the page is live.
+
+       These match the recommended structure from the SEO plan. Each one
+       targets a distinct search, which a single page cannot do.
+
+  <url>
+    <loc>https://meetventure.ca/mortgage-renewal-ontario</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/first-time-home-buyer-ontario</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/self-employed-mortgage</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/newcomer-mortgage-canada</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/pre-construction-mortgage</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/mortgage-affordability-calculator</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/rent-vs-buy-calculator</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/commercial-lending</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://meetventure.ca/business-financing</loc>
+    <lastmod>2026-08-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  =================================================================== -->
+
+</urlset>
