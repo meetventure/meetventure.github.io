@@ -1,13 +1,56 @@
 /* =====================================================================
-   meetventure.ca - shared site script
-   Loaded by EVERY page. Structure:
-     1. DATA  - blog posts, case studies, regions, market/rate data
-     2. LOGIC - guarded init modules (see the note above the LOGIC block)
-   Edit data in section 1; you rarely need to touch section 2.
+   SLIDER FILL (the dark-to-light "progress bar" look on every slider)
+   Native <input type=range> doesn't support a filled-left/empty-right
+   look on its own in most browsers, so this fills in the gap: it reads
+   the slider's current value as a % of its min-max range, then paints
+   the track with a two-color gradient split at that %. Applied to EVERY
+   range slider on the page automatically (see the bottom of this block),
+   so a new slider added later only needs the "range-fill" class added in
+   the HTML - no extra JS required.
 ===================================================================== */
+function updateSliderFill(slider){
+  const min = parseFloat(slider.min) || 0;
+  const max = parseFloat(slider.max) || 100;
+  const val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  // dark ink color up to the thumb, light track color after it
+  slider.style.background = `linear-gradient(to right, var(--ink) 0%, var(--ink) ${pct}%, var(--line) ${pct}%, var(--line) 100%)`;
+}
+function initAllSliderFills(){
+  document.querySelectorAll('input[type=range]').forEach(slider=>{
+    updateSliderFill(slider);
+    slider.addEventListener('input', ()=>updateSliderFill(slider));
+  });
+}
+initAllSliderFills();
 
 /* =====================================================================
-   1. DATA
+   MOBILE NAV (hamburger menu)
+   Below 920px width, the hamburger icon (#nav-toggle) in the nav bar shows
+   up instead of the desktop link row. Tapping it calls toggleMobileNav(),
+   which slides #mobile-nav open/closed and swaps the icon to an X. Tapping
+   any link inside closes it again via closeMobileNav() (see the onclick on
+   each <a> in index.html's #mobile-nav block).
+===================================================================== */
+function toggleMobileNav(){
+  const menu = document.getElementById('mobile-nav');
+  const toggle = document.getElementById('nav-toggle');
+  const isOpen = menu.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+function closeMobileNav(){
+  document.getElementById('mobile-nav').classList.remove('open');
+  document.getElementById('nav-toggle').classList.remove('open');
+  document.getElementById('nav-toggle').setAttribute('aria-expanded', 'false');
+}
+// Safety net: if someone has the mobile menu open and rotates their phone
+// or resizes past the point where the hamburger switches back to the full
+// desktop nav (920px), force the menu closed so it can't get stuck open.
+window.addEventListener('resize', ()=>{ if(window.innerWidth > 920) closeMobileNav(); });
+
+/* =====================================================================
+   BLOG POSTS - add a new object here to add a post. Nothing else to edit.
 ===================================================================== */
 const BLOG_POSTS = [
   { tag: "First-Time Buyers", title: "You Don't Need 20% Down - Here's What You Actually Need", date: "July 2026",
@@ -84,6 +127,12 @@ const BLOG_POSTS = [
     ]}
 ];
 
+/* =====================================================================
+   DOCUMENT CHECKLIST - add/remove a scenario by adding/removing a key
+   below. Add/remove a required document by adding/removing a line in
+   its array. That's it - the tabs, list, and progress bar all update
+   automatically.
+===================================================================== */
 const DOC_SCENARIOS = {
   "First-Time Buyer": [
     "Government-issued photo ID",
@@ -133,6 +182,10 @@ const DOC_SCENARIOS = {
   ]
 };
 
+/* =====================================================================
+   CASE STUDIES - add a new object to add a card. `stats` shows 2-3
+   quick numbers on the card; `content` is the full expanded story.
+===================================================================== */
 const CASE_STUDIES = [
   { tag:"First-Time Buyers", title:"The $815,000 Home: Three Ways to Get There",
     preview:"A family compared 10%, 15%, and 20% down side by side before deciding - spreadsheets at the dinner table and everything.",
@@ -208,10 +261,28 @@ const CASE_STUDIES = [
     ]}
 ];
 
+/* =====================================================================
+   LOCAL MARKET DATA - GROWTH_RATES models the year-over-year GTA-wide
+   price change (used to back-calculate history from each city's 2026
+   anchor price). Update anchor prices periodically from local boards.
+===================================================================== */
 const YEARS = [2020,2021,2022,2023,2024,2025,2026];
+const GROWTH_RATES = [0.1854, 0.0872, -0.0524, -0.0097, -0.0468, -0.0086]; // 2020->21 ... 2025->26
 
-const GROWTH_RATES = [0.1854, 0.0872, -0.0524, -0.0097, -0.0468, -0.0086];
+function buildHistory(anchor2026){
+  const vals = new Array(YEARS.length);
+  vals[YEARS.length-1] = anchor2026;
+  for(let i=GROWTH_RATES.length-1; i>=0; i--){ vals[i] = Math.round(vals[i+1] / (1+GROWTH_RATES[i])); }
+  return vals;
+}
 
+/* REGIONS: one entry per bubble on the Ontario map (Coverage Areas section).
+   cx/cy = center point, r = circle radius, all in SVG user-units against the
+   viewBox set on <svg id="ontario-map"> in index.html (currently "0 0 620 480").
+   IMPORTANT: if you add/move a region or resize any r, make sure cx-r, cx+r,
+   cy-r, and cy+r+30 (extra 30 for the label text under the circle) all stay
+   inside the viewBox, or that region will get visually clipped/cut off at
+   the edge. Safe usable area with current viewBox: x 20-600, y 25-450. */
 const REGIONS = [
   { id:"waterloo", name:"Waterloo Region", cx:110, cy:250, r:46, color:"#262E36",
     cities:[ {name:"Kitchener-Waterloo", anchor:642000, est:false}, {name:"Cambridge", anchor:671000, est:false} ] },
@@ -237,6 +308,67 @@ const REGIONS = [
     cities:[ {name:"London", anchor:640886, est:false}, {name:"St. Thomas", anchor:520000, est:true}, {name:"Middlesex Centre", anchor:746000, est:false} ] }
 ];
 
+function fmt(v){ return '$' + Math.round(v).toLocaleString('en-CA'); }
+function fmtK(v){ return '$' + Math.round(v/1000) + 'K'; }
+
+/* ---- draw the stylized Ontario region map ---- */
+const mapSvg = document.getElementById('ontario-map');
+let activeMapRegion = "waterloo";
+function renderMap(){
+  mapSvg.innerHTML = '';
+  REGIONS.forEach(r=>{
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', r.cx); circle.setAttribute('cy', r.cy); circle.setAttribute('r', r.r);
+    circle.setAttribute('fill', r.color); circle.setAttribute('opacity', r.id===activeMapRegion ? '1' : '0.55');
+    circle.setAttribute('class','region-blob');
+    circle.addEventListener('click', ()=>{ activeMapRegion = r.id; renderMap(); renderMapDetail(); });
+    g.appendChild(circle);
+    const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+    label.setAttribute('x', r.cx); label.setAttribute('y', r.cy + r.r + 16);
+    label.setAttribute('text-anchor','middle');
+    label.setAttribute('class','region-label' + (r.id===activeMapRegion ? ' active-label' : ''));
+    label.textContent = r.name;
+    g.appendChild(label);
+    mapSvg.appendChild(g);
+  });
+}
+
+function renderMapDetail(){
+  const region = REGIONS.find(r=>r.id===activeMapRegion);
+  const detail = document.getElementById('map-detail');
+  const histories = region.cities.map(c=>({...c, history: buildHistory(c.anchor)}));
+  const allVals = histories.flatMap(h=>h.history);
+  const maxV = Math.max(...allVals) * 1.08;
+  const minV = Math.min(...allVals) * 0.92;
+  const colors = ["#262E36","#6C6D74","#8F4A42","#4F6E5C","#090F15"];
+
+  const chartW = 460, chartH = 220, padL=44, padB=28, padT=14;
+  const plotW = chartW - padL - 14, plotH = chartH - padB - padT;
+  function xPos(i){ return padL + (plotW * i/(YEARS.length-1)); }
+  function yPos(v){ return padT + plotH - ((v-minV)/(maxV-minV))*plotH; }
+
+  let svgLines = '';
+  histories.forEach((h, idx)=>{
+    const color = colors[idx % colors.length];
+    let pathD = h.history.map((v,i)=> (i===0?'M':'L') + xPos(i).toFixed(1) + ',' + yPos(v).toFixed(1)).join(' ');
+    svgLines += `<path class="chart-line" d="${pathD}" stroke="${color}"/>`;
+    h.history.forEach((v,i)=>{ svgLines += `<circle class="chart-dot" cx="${xPos(i).toFixed(1)}" cy="${yPos(v).toFixed(1)}" fill="${color}"/>`; });
+  });
+  YEARS.forEach((y,i)=>{ svgLines += `<text class="chart-axis-label" x="${xPos(i).toFixed(1)}" y="${chartH-6}" text-anchor="middle">${y}</text>`; });
+  [minV, (minV+maxV)/2, maxV].forEach(v=>{ svgLines += `<text class="chart-axis-label" x="4" y="${yPos(v).toFixed(1)+3}">${fmtK(v)}</text>`; });
+
+  const legendHtml = histories.map((h,idx)=>`<div class="chip"><span class="dot" style="background:${colors[idx%colors.length]}"></span>${h.name}${h.est?' (estimated)':''} · ${fmt(h.anchor)}</div>`).join('');
+
+  detail.innerHTML = `
+    <h4>${region.name}</h4>
+    <div class="sub">Average price trend, 2020-2026</div>
+    <div class="city-legend">${legendHtml}</div>
+    <svg class="chart" viewBox="0 0 ${chartW} ${chartH}">${svgLines}</svg>
+  `;
+}
+
+/* ---- BoC rate + bond yield combined chart ---- */
 const BOC_MEETINGS = [
   ["2023-01-25",4.50,"hike"],["2023-03-08",4.50,"hold"],["2023-04-12",4.50,"hold"],["2023-06-07",4.75,"hike"],
   ["2023-07-12",5.00,"hike"],["2023-09-06",5.00,"hold"],["2023-10-25",5.00,"hold"],["2023-12-06",5.00,"hold"],
@@ -247,7 +379,7 @@ const BOC_MEETINGS = [
   ["2026-01-28",2.25,"hold"],["2026-03-18",2.25,"hold"],["2026-04-29",2.25,"hold"],["2026-06-10",2.25,"hold"],
   ["2026-07-15",2.25,"hold"]
 ];
-
+// Approximate quarterly 5-yr GoC bond yield, anchored to confirmed readings (Apr 2026: 3.12%, Jul 2026: 3.26%)
 const BOND_YIELDS = [
   ["2023-01-01",3.40],["2023-04-01",3.85],["2023-07-01",4.30],["2023-10-01",4.05],
   ["2024-01-01",3.55],["2024-04-01",3.65],["2024-07-01",3.30],["2024-10-01",2.95],
@@ -255,487 +387,484 @@ const BOND_YIELDS = [
   ["2026-01-01",3.05],["2026-04-01",3.12],["2026-07-01",3.26]
 ];
 
-function buildHistory(anchor2026){
-  const vals = new Array(YEARS.length);
-  vals[YEARS.length-1] = anchor2026;
-  for(let i=GROWTH_RATES.length-1; i>=0; i--){ vals[i] = Math.round(vals[i+1] / (1+GROWTH_RATES[i])); }
-  return vals;
-}/* =====================================================================
-   LOGIC - every block below is GUARDED.
+let showBoc = true, showBond = true;
+function renderRateChart(){
+  const svg = document.getElementById('rate-chart');
+  const tooltip = document.getElementById('rate-tooltip');
+  const W=900,H=340, padL=50,padR=20,padT=20,padB=36;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  const startTime = new Date("2023-01-01").getTime();
+  const endTime = new Date("2026-07-15").getTime();
+  function xPos(dateStr){ const t=new Date(dateStr).getTime(); return padL + plotW*(t-startTime)/(endTime-startTime); }
+  const minRate=2.0, maxRate=5.2;
+  function yPos(v){ return padT + plotH - ((v-minRate)/(maxRate-minRate))*plotH; }
 
-   This one file loads on every page of the site. Because different pages
-   contain different sections, each module first checks whether its
-   elements exist and quietly returns if they don't. That's what the
-   `if (!el) return;` lines are doing - without them, a page that has no
-   calculator would throw a JS error and stop ALL the other scripts on
-   that page from running.
+  let html = '';
+  [2,3,4,5].forEach(v=>{ html += `<line x1="${padL}" y1="${yPos(v)}" x2="${W-padR}" y2="${yPos(v)}" stroke="#B3B7BA" stroke-width="1"/><text class="chart-axis-label" x="6" y="${yPos(v)+3}">${v}%</text>`; });
 
-   If you add a new page, you don't need to touch this file at all.
-===================================================================== */
-
-/* ---------- tiny helpers ---------- */
-const $  = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const money  = v => '$' + Math.round(v).toLocaleString('en-CA');
-const moneyK = v => '$' + Math.round(v / 1000) + 'K';
-
-/* ---------- shared mortgage math ----------
-   Change CMHC premium tiers or the suggested rate HERE and every
-   calculator across every page updates at once. */
-function cmhcRate(pct){ if(pct>=20) return 0; if(pct>=15) return 0.028; if(pct>=10) return 0.031; return 0.04; }
-function suggestedRate(pct){ return pct>=20 ? 4.14 : 3.99; }
-
-/* Canadian mortgages compound semi-annually by law, which is why the
-   monthly rate conversion below is not simply annualRate/12. Don't swap
-   in a generic US mortgage formula. */
-function monthlyPayment(principal, annualRatePct, years){
-  const annual = annualRatePct/100;
-  const n = years*12;
-  const i = Math.pow(1 + annual/2, 2/12) - 1;
-  if(i === 0) return principal / n;
-  return principal * (i*Math.pow(1+i,n)) / (Math.pow(1+i,n) - 1);
-}
-
-/* ---------- slider fill ----------
-   Native range inputs can't show a filled-left/empty-right track in every
-   browser, so we paint a two-stop gradient based on the current value. */
-function updateSliderFill(el){
-  const min = parseFloat(el.min) || 0;
-  const max = parseFloat(el.max) || 100;
-  const pct = max === min ? 0 : ((parseFloat(el.value) - min) / (max - min)) * 100;
-  el.style.background =
-    `linear-gradient(to right, var(--ink) 0%, var(--ink) ${pct}%, var(--line) ${pct}%, var(--line) 100%)`;
-}
-function initSliderFills(){
-  $$('input[type=range]').forEach(el => {
-    updateSliderFill(el);
-    el.addEventListener('input', () => updateSliderFill(el));
-  });
-}
-
-/* ---------- mobile nav ---------- */
-function initNav(){
-  const toggle = $('#nav-toggle');
-  const menu   = $('#mobile-nav');
-  if(!toggle || !menu) return;
-
-  const close = () => { menu.classList.remove('open'); toggle.setAttribute('aria-expanded','false'); };
-
-  toggle.addEventListener('click', () => {
-    const open = !menu.classList.contains('open');
-    menu.classList.toggle('open', open);
-    toggle.setAttribute('aria-expanded', String(open));
-  });
-  $$('a, button', menu).forEach(el => el.addEventListener('click', close));
-  // if the phone is rotated to a width where the desktop nav returns,
-  // force the mobile menu shut so it can't get stuck open
-  window.addEventListener('resize', () => { if(window.innerWidth > 920) close(); });
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
-}
-
-/* ---------- generic modal ---------- */
-function initModal(){
-  const overlay = $('#modal-overlay');
-  if(!overlay) return;
-  const close = () => { overlay.classList.remove('active'); document.body.style.overflow = ''; };
-  overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
-  const btn = $('#modal-close');
-  if(btn) btn.addEventListener('click', close);
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
-  window.__closeModal = close;
-}
-function openModal({ tag = '', title = '', meta = '', html = '' }){
-  const overlay = $('#modal-overlay');
-  if(!overlay) return;
-  const set = (sel, val) => { const el = $(sel); if(el) el.textContent = val; };
-  set('#modal-tag', tag); set('#modal-title', title); set('#modal-meta', meta);
-  const body = $('#modal-content');
-  if(body) body.innerHTML = html;
-  overlay.classList.add('active');
-  overlay.scrollTop = 0;
-  const box = $('#modal-box'); if(box) box.scrollTop = 0;
-  document.body.style.overflow = 'hidden'; // stop the page scrolling behind the modal on iOS
-}
-
-/* ---------- hero / primary payment calculator ---------- */
-function initHeroCalc(){
-  const hp = $('#hp-slider'), dp = $('#dp-slider'), rate = $('#rate-slider');
-  if(!hp || !dp || !rate) return;
-
-  let rateTouched = false;
-  rate.addEventListener('input', () => {
-    rateTouched = true;
-    const badge = $('#rate-suggested-badge');
-    if(badge) badge.style.display = 'none';
-    render();
-  });
-
-  function render(){
-    const price = parseFloat(hp.value);
-    const pct   = parseFloat(dp.value);
-    if(!rateTouched){ rate.value = suggestedRate(pct); updateSliderFill(rate); }
-    const r     = parseFloat(rate.value);
-    const down  = price * pct / 100;
-    const base  = price - down;
-    const prem  = base * cmhcRate(pct);
-    const total = base + prem;
-    const m     = monthlyPayment(total, r, 25);
-
-    const set = (sel, val) => { const el = $(sel); if(el) el.textContent = val; };
-    set('#hp-display', money(price));
-    set('#hp-val', money(price));
-    set('#dp-val', pct + '% · ' + money(down));
-    set('#rate-val', r.toFixed(2) + '%');
-    set('#hero-monthly', money(m) + '/mo');
-    set('#hero-cmhc-note', pct >= 20
-      ? 'No CMHC insurance required (20%+ down) · 25-yr amortization'
-      : 'Includes CMHC insurance premium (financed) · 25-yr amortization');
-    set('#hero-cmhc-amt', prem > 0 ? money(prem) : '$0');
-    set('#hero-total-mortgage', money(total));
-    set('#hero-down-amt', money(down));
-  }
-
-  [hp, dp].forEach(el => el.addEventListener('input', render));
-  render();
-}
-
-/* ---------- affordability calculator ---------- */
-function initAffordability(){
-  const inc = $('#af-income'), debt = $('#af-debt'), down = $('#af-down'), rate = $('#af-rate');
-  if(!inc || !debt || !down || !rate) return;
-
-  function render(){
-    const income   = parseFloat(inc.value);
-    const monthly  = income / 12;
-    const debts    = parseFloat(debt.value);
-    const dpAmt    = parseFloat(down.value);
-    const r        = parseFloat(rate.value);
-
-    // GDS 39% / TDS 44% are the common conventional guidelines.
-    const gdsRoom  = monthly * 0.39;
-    const tdsRoom  = monthly * 0.44 - debts;
-    const housing  = Math.max(0, Math.min(gdsRoom, tdsRoom));
-
-    // reserve a slice of the housing budget for property tax + heat
-    const forPI    = Math.max(0, housing - (monthly * 0.055));
-    const i        = Math.pow(1 + (r/100)/2, 2/12) - 1;
-    const n        = 25 * 12;
-    const maxMort  = i > 0 ? forPI * (Math.pow(1+i,n) - 1) / (i*Math.pow(1+i,n)) : forPI * n;
-    const maxPrice = maxMort + dpAmt;
-
-    const set = (sel, val) => { const el = $(sel); if(el) el.textContent = val; };
-    set('#af-income-val', money(income));
-    set('#af-debt-val', money(debts) + '/mo');
-    set('#af-down-val', money(dpAmt));
-    set('#af-rate-val', r.toFixed(2) + '%');
-    set('#af-max-housing', money(housing) + '/mo');
-    set('#af-max-mortgage', money(maxMort));
-    set('#af-max-price', money(maxPrice));
-
-    /* Tell the user WHICH ratio is capping them. Without this the debt
-       slider looks broken: while GDS is the tighter limit, changing your
-       other debts genuinely does not move the result, and people assume
-       the calculator is stuck. */
-    const bound = $('#af-bound');
-    if(bound){
-      bound.textContent = gdsRoom <= tdsRoom
-        ? 'Right now your housing-cost ratio (GDS, 39%) is the limit - clearing other debts will not raise this until they exceed about ' + money(monthly*0.05) + '/mo.'
-        : 'Right now your total-debt ratio (TDS, 44%) is the limit - paying down other debts would raise your maximum.';
-    }
-
-    const meter = $('#af-meter');
-    if(meter){
-      const ratio = monthly > 0 ? Math.min(1, (housing + debts) / (monthly * 0.44)) : 0;
-      meter.style.width = (ratio * 100).toFixed(1) + '%';
-      meter.style.background = ratio > 0.95 ? 'var(--red)' : ratio > 0.8 ? 'var(--accent)' : 'var(--green)';
-    }
-  }
-  [inc, debt, down, rate].forEach(el => el.addEventListener('input', render));
-  render();
-}
-
-/* ---------- rent vs buy ---------- */
-function initRentVsBuy(){
-  const rent = $('#rvb-rent'), price = $('#rvb-price'), rate = $('#rvb-rate'), yrs = $('#rvb-years');
-  if(!rent || !price || !rate || !yrs) return;
-
-  function render(){
-    const rentM = parseFloat(rent.value);
-    const p     = parseFloat(price.value);
-    const r     = parseFloat(rate.value);
-    const years = parseFloat(yrs.value);
-
-    const dpPct = 0.20;
-    const dpAmt = p * dpPct;
-    const mort  = p - dpAmt;
-    const pay   = monthlyPayment(mort, r, 25);
-
-    const rentTotal = rentM * 12 * years * 1.02; // small annual rent drift
-    const ownCarry  = (pay + p * 0.01/12 + 250) * 12 * years; // + tax + upkeep
-    const i         = Math.pow(1 + (r/100)/2, 2/12) - 1;
-    const n         = 25*12;
-    let bal = mort;
-    for(let k = 0; k < years*12 && k < n; k++){ bal = bal * (1+i) - pay; }
-    const equity = Math.max(0, p - Math.max(0, bal));
-
-    const set = (sel, val) => { const el = $(sel); if(el) el.textContent = val; };
-    set('#rvb-rent-val', money(rentM) + '/mo');
-    set('#rvb-price-val', money(p));
-    set('#rvb-rate-val', r.toFixed(2) + '%');
-    set('#rvb-years-val', years + ' yrs');
-    set('#rvb-rent-total', money(rentTotal));
-    set('#rvb-own-total', money(ownCarry));
-    set('#rvb-equity', money(equity));
-    set('#rvb-payment', money(pay) + '/mo');
-  }
-  [rent, price, rate, yrs].forEach(el => el.addEventListener('input', render));
-  render();
-}
-
-/* ---------- down payment dial ---------- */
-const ARC_LEN = 315;
-function initDial(){
-  const dp = $('#dial-slider'), rate = $('#dial-rate-slider');
-  if(!dp) return;
-  let rateTouched = false;
-  if(rate) rate.addEventListener('input', () => { rateTouched = true; render(); });
-
-  function render(){
-    const pct = parseFloat(dp.value);
-    if(rate && !rateTouched){ rate.value = suggestedRate(pct); updateSliderFill(rate); }
-    const r = rate ? parseFloat(rate.value) : suggestedRate(pct);
-    const price = 650000;
-    const down  = price * pct/100;
-    const base  = price - down;
-    const prem  = base * cmhcRate(pct);
-    const total = base + prem;
-    const m     = monthlyPayment(total, r, 25);
-
-    const arc = $('#dial-arc');
-    if(arc){
-      const frac = Math.min(1, Math.max(0, (pct - 5) / 25));
-      arc.style.strokeDasharray = `${(frac*ARC_LEN).toFixed(1)} ${ARC_LEN}`;
-    }
-    const set = (sel, val) => { const el = $(sel); if(el) el.textContent = val; };
-    set('#dial-pct', pct + '%');
-    set('#dial-rate-val', r.toFixed(2) + '%');
-    set('#dial-price', money(price));
-    set('#dial-down', money(down));
-    set('#dial-cmhc', prem > 0 ? money(prem) : '$0 (not required)');
-    set('#dial-total', money(total));
-    set('#dial-monthly', money(m) + '/mo');
-    set('#dial-insured', pct >= 20 ? 'No - 20%+ down' : 'Yes - under 20% down');
-  }
-  dp.addEventListener('input', render);
-  render();
-}
-
-/* ---------- tabs (tools) ---------- */
-function initTabs(){
-  const tabs = $$('.tab[data-panel]');
-  if(!tabs.length) return;
-  tabs.forEach(tab => tab.addEventListener('click', () => {
-    const id = tab.dataset.panel;
-    tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-    $$('[data-panel-id]').forEach(p => { p.hidden = p.dataset.panelId !== id; });
-  }));
-}
-
-/* ---------- document checklist ---------- */
-function initDocs(){
-  const wrap = $('#doc-list');
-  if(!wrap || typeof DOC_SCENARIOS === 'undefined') return;
-  const tabs = $$('.doc-tab');
-  function render(key){
-    const items = DOC_SCENARIOS[key] || [];
-    wrap.innerHTML = items.map((t,i) =>
-      `<label class="doc-item"><input type="checkbox" id="doc-${key}-${i}"><span>${t}</span></label>`
-    ).join('');
-  }
-  tabs.forEach(t => t.addEventListener('click', () => {
-    tabs.forEach(x => x.setAttribute('aria-selected', String(x === t)));
-    render(t.dataset.scenario);
-  }));
-  const first = tabs[0];
-  render(first ? first.dataset.scenario : Object.keys(DOC_SCENARIOS)[0]);
-}
-
-/* ---------- Ontario region map ---------- */
-let activeRegion = 'waterloo';
-function initMap(){
-  const svg = $('#ontario-map');
-  if(!svg || typeof REGIONS === 'undefined') return;
-
-  function drawMap(){
-    svg.innerHTML = '';
-    REGIONS.forEach(r => {
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx', r.cx); c.setAttribute('cy', r.cy); c.setAttribute('r', r.r);
-      c.setAttribute('fill', r.color);
-      c.setAttribute('opacity', r.id === activeRegion ? '1' : '.55');
-      c.setAttribute('tabindex','0');
-      c.setAttribute('role','button');
-      c.setAttribute('aria-label', r.name);
-      const pick = () => { activeRegion = r.id; drawMap(); drawDetail(); };
-      c.addEventListener('click', pick);
-      c.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick(); } });
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x', r.cx); t.setAttribute('y', r.cy + r.r + 18);
-      t.setAttribute('text-anchor','middle');
-      t.setAttribute('font-size','13'); t.setAttribute('font-weight','700');
-      t.setAttribute('fill','var(--ink)');
-      t.textContent = r.name;
-      g.append(c, t); svg.appendChild(g);
-    });
-  }
-
-  function drawDetail(){
-    const box = $('#map-detail');
-    if(!box) return;
-    const r = REGIONS.find(x => x.id === activeRegion);
-    if(!r) return;
-    const rows = r.cities.map(c =>
-      `<div class="stat-row"><span>${c.name}${c.est ? ' <em style="color:var(--ink-dim);font-style:normal">(est.)</em>' : ''}</span><strong>${money(c.anchor)}</strong></div>`
-    ).join('');
-    box.innerHTML = `<h4>${r.name}</h4>
-      <p class="calc-note" style="margin-bottom:1rem">Benchmark / typical prices</p>
-      <div class="stat-rows">${rows}</div>`;
-  }
-
-  drawMap(); drawDetail();
-}
-
-/* ---------- rate chart ---------- */
-function initRateChart(){
-  const svg = $('#rate-chart');
-  if(!svg || typeof BOC_MEETINGS === 'undefined') return;
-
-  const W = 900, H = 340, L = 56, R = 20, T = 24, B = 48;
-  let showBoc = true, showBond = true;
-
-  function draw(){
-    const all = [...BOC_MEETINGS.map(d=>d.rate), ...BOND_YIELDS.map(d=>d.y)];
-    const min = Math.min(...all) - .4, max = Math.max(...all) + .4;
-    const x = i => L + (W-L-R) * (i/(Math.max(1,BOC_MEETINGS.length-1)));
-    const y = v => H-B - ((v-min)/(max-min))*(H-B-T);
-
-    let g = '';
-    for(let k=0;k<=4;k++){
-      const v = min + (max-min)*k/4, yy = y(v);
-      g += `<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="var(--line)" stroke-width="1" opacity=".5"/>
-            <text x="${L-10}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink-dim)">${v.toFixed(1)}%</text>`;
-    }
-    if(showBoc){
-      const pts = BOC_MEETINGS.map((d,i)=>`${x(i)},${y(d.rate)}`).join(' ');
-      g += `<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>`;
-      BOC_MEETINGS.forEach((d,i)=>{ g += `<circle cx="${x(i)}" cy="${y(d.rate)}" r="4" fill="var(--ink)"/>`; });
-    }
-    if(showBond && BOND_YIELDS.length){
-      const step = (BOC_MEETINGS.length-1)/Math.max(1,BOND_YIELDS.length-1);
-      const pts = BOND_YIELDS.map((d,i)=>`${x(i*step)},${y(d.y)}`).join(' ');
-      g += `<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="6 5" stroke-linejoin="round"/>`;
-    }
-    BOC_MEETINGS.forEach((d,i)=>{
-      if(i % Math.ceil(BOC_MEETINGS.length/6) === 0 || i === BOC_MEETINGS.length-1){
-        g += `<text x="${x(i)}" y="${H-B+22}" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">${d.label || ''}</text>`;
+  if(showBoc){
+    let bocPath = '';
+    BOC_MEETINGS.forEach((m,i)=>{
+      const x = xPos(m[0]), y = yPos(m[1]);
+      if(i===0){ bocPath += `M${x},${y}`; } else {
+        const prevY = yPos(BOC_MEETINGS[i-1][1]);
+        bocPath += ` L${x},${prevY} L${x},${y}`;
       }
     });
-    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-    svg.innerHTML = g;
+    html += `<path class="chart-line" d="${bocPath}" stroke="#262E36" stroke-width="3"/>`;
+  }
+  if(showBond){
+    let bondPath = '';
+    BOND_YIELDS.forEach((b,i)=>{ const x=xPos(b[0]), y=yPos(b[1]); bondPath += (i===0?'M':'L')+x+','+y+' '; });
+    html += `<path class="chart-line" d="${bondPath}" stroke="#8C959E" stroke-width="2.5"/>`;
   }
 
-  const lb = $('#legend-boc'), lbd = $('#legend-bond');
-  if(lb)  lb.addEventListener('click',  ()=>{ showBoc  = !showBoc;  lb.style.opacity  = showBoc?'1':'.4';  draw(); });
-  if(lbd) lbd.addEventListener('click', ()=>{ showBond = !showBond; lbd.style.opacity = showBond?'1':'.4'; draw(); });
-  draw();
-}
+  ["2023-01-01","2024-01-01","2025-01-01","2026-01-01"].forEach(d=>{
+    html += `<text class="chart-axis-label" x="${xPos(d)}" y="${H-10}" text-anchor="middle">${d.slice(0,4)}</text>`;
+  });
 
-/* ---------- blog ---------- */
-function initBlog(){
-  const wrap = $('#blog-grid');
-  if(!wrap || typeof BLOG_POSTS === 'undefined') return;
-  wrap.innerHTML = BLOG_POSTS.map((p,i) => `
-    <article class="card blog-card" data-blog="${i}" tabindex="0" role="button" aria-label="Read: ${p.title}">
-      <span class="tag">${p.tag}</span>
-      <h3>${p.title}</h3>
-      <p>${(p.body && p.body[0] ? p.body[0] : '').slice(0,120)}...</p>
-      <p class="calc-note">${p.date}</p>
-    </article>`).join('');
+  // invisible larger hit targets + visible dots, added after paths so they sit on top
+  if(showBoc){
+    BOC_MEETINGS.forEach(m=>{
+      const x=xPos(m[0]), y=yPos(m[1]);
+      const c = m[2]==="hike" ? "#8F4A42" : m[2]==="cut" ? "#4F6E5C" : "#262E36";
+      html += `<circle cx="${x}" cy="${y}" r="3.5" fill="${c}"/>`;
+      html += `<circle class="chart-hit" data-kind="boc" data-date="${m[0]}" data-val="${m[1]}" data-type="${m[2]}" cx="${x}" cy="${y}" r="9" fill="transparent"/>`;
+    });
+  }
+  if(showBond){
+    BOND_YIELDS.forEach(b=>{
+      const x=xPos(b[0]), y=yPos(b[1]);
+      html += `<circle cx="${x}" cy="${y}" r="3" fill="#6C6D74"/>`;
+      html += `<circle class="chart-hit" data-kind="bond" data-date="${b[0]}" data-val="${b[1]}" cx="${x}" cy="${y}" r="9" fill="transparent"/>`;
+    });
+  }
 
-  const open = i => {
-    const p = BLOG_POSTS[i];
-    openModal({ tag:p.tag, title:p.title, meta:p.date,
-      html:(p.body||[]).map(t=>`<p>${t}</p>`).join('') });
-  };
-  $$('[data-blog]', wrap).forEach(el => {
-    const i = +el.dataset.blog;
-    el.addEventListener('click', ()=>open(i));
-    el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(i); } });
+  svg.innerHTML = html;
+
+  svg.querySelectorAll('.chart-hit').forEach(el=>{
+    el.addEventListener('mousemove', (e)=>{
+      const rect = svg.getBoundingClientRect();
+      const parentRect = svg.parentElement.getBoundingClientRect();
+      const kind = el.dataset.kind;
+      const dateLabel = new Date(el.dataset.date).toLocaleDateString('en-CA', {year:'numeric', month:'short', day:'numeric'});
+      const val = parseFloat(el.dataset.val).toFixed(2);
+      let label = kind === 'boc'
+        ? `BoC Overnight Rate: ${val}% <span style="opacity:.7">(${el.dataset.type})</span>`
+        : `5-Yr Bond Yield: ~${val}%`;
+      tooltip.innerHTML = `<div class="tt-date">${dateLabel}</div>${label}`;
+      tooltip.style.opacity = '1';
+      tooltip.style.left = (e.clientX - parentRect.left + 14) + 'px';
+      tooltip.style.top = (e.clientY - parentRect.top - 34) + 'px';
+    });
+    el.addEventListener('mouseleave', ()=>{ tooltip.style.opacity = '0'; });
   });
 }
 
-/* ---------- case studies with pagination ---------- */
+document.getElementById('legend-boc').addEventListener('click', ()=>{
+  showBoc = !showBoc;
+  document.getElementById('legend-boc').classList.toggle('off', !showBoc);
+  renderRateChart();
+});
+document.getElementById('legend-bond').addEventListener('click', ()=>{
+  showBond = !showBond;
+  document.getElementById('legend-bond').classList.toggle('off', !showBond);
+  renderRateChart();
+});
+
+document.querySelectorAll('.market-tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.market-tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.market-view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  });
+});
+renderMap(); renderMapDetail(); renderRateChart();
+
+/* =====================================================================
+   SHARED MORTGAGE MATH
+   These three functions are used everywhere on the site that shows a
+   monthly payment number (hero calculator, down payment dial, rent vs
+   buy, affordability check). If you need to update CMHC premium rates
+   or the "suggested" starting rate shown to visitors, this is the ONE
+   place to change it - every calculator on the site will pick it up
+   automatically since they all call these same functions.
+===================================================================== */
+
+/* CMHC mortgage default insurance premium, as a % of the loan amount,
+   based on down payment size. These are the standard CMHC tiers as of
+   this build - if CMHC changes their rate schedule, update the numbers
+   below (they're percentages written as decimals, e.g. 0.031 = 3.1%). */
+function cmhcRate(pct){ if(pct>=20) return 0; if(pct>=15) return 0.028; if(pct>=10) return 0.031; return 0.04; }
+
+/* The rate shown by default before a visitor drags the rate slider
+   themselves. Update these two numbers whenever current mortgage rates
+   move meaningfully - this is a "suggested starting point" for the
+   calculator, not a real quote, so it doesn't need to be exact to the
+   decimal, just roughly current. */
+function suggestedRate(pct){ return pct>=20 ? 4.14 : 3.99; }
+
+/* Standard Canadian mortgage payment formula, using semi-annual
+   compounding (that "Math.pow(1+annualRate/2, 2/12) - 1" line converts
+   the annual rate into an equivalent monthly rate the Canadian way -
+   Canadian mortgages compound semi-annually by law, which is different
+   from how US mortgages are calculated, so don't swap in a generic
+   "mortgage calculator formula" from elsewhere without checking this). */
+function monthlyPayment(principal, annualRatePct, years){
+  const annualRate = annualRatePct/100;
+  const n = years*12;
+  const i = Math.pow(1+annualRate/2, 2/12) - 1;
+  return principal * (i*Math.pow(1+i,n)) / (Math.pow(1+i,n)-1);
+}
+
+/* =====================================================================
+   HERO TICKER
+   The big "drag the sliders" calculator right under the headline at the
+   top of the page. Three sliders (price, down payment, rate) all call
+   updateHero() on every drag, which recalculates and rewrites the
+   numbers shown. The rate slider auto-fills a suggested value (from
+   suggestedRate() above) until the visitor drags it themselves, at
+   which point rateTouchedByUser flips to true and it stops auto-filling.
+===================================================================== */
+const hpSlider = document.getElementById('hp-slider');
+const dpSlider = document.getElementById('dp-slider');
+const rateSlider = document.getElementById('rate-slider');
+let rateTouchedByUser = false;
+rateSlider.addEventListener('input', ()=>{ rateTouchedByUser = true; document.getElementById('rate-suggested-badge').style.display='none'; updateHero(); });
+
+function updateHero(){
+  const price = parseFloat(hpSlider.value);
+  const pct = parseFloat(dpSlider.value);
+  if(!rateTouchedByUser){ rateSlider.value = suggestedRate(pct); updateSliderFill(rateSlider); }
+  const rate = parseFloat(rateSlider.value);
+  const down = price*pct/100;
+  const base = price - down;
+  const cRate = cmhcRate(pct);
+  const cmhc = base*cRate;
+  const total = base + cmhc;
+  const m = monthlyPayment(total, rate, 25);
+
+  document.getElementById('hp-display').textContent = fmt(price);
+  document.getElementById('hp-val').textContent = fmt(price);
+  document.getElementById('dp-val').textContent = pct + '% · ' + fmt(down);
+  document.getElementById('rate-val').textContent = rate.toFixed(2) + '%';
+  document.getElementById('hero-monthly').textContent = fmt(m) + '/mo';
+  document.getElementById('hero-cmhc-note').textContent = pct>=20
+    ? 'No CMHC insurance required (20%+ down) · 25-yr amortization'
+    : 'Includes CMHC insurance premium (financed) · 25-yr amortization';
+}
+[hpSlider, dpSlider].forEach(el=>el.addEventListener('input', updateHero));
+updateHero();
+
+/* =====================================================================
+   TABS (games) - switches between the three "games" panels (Down
+   Payment Dial / Rent vs Buy / Affordability). Matches each tab to its
+   panel via the data-panel="..." attribute on the tab in index.html,
+   which must match the end of that panel's id ("panel-XXX"). If you add
+   a fourth game, give its tab a new data-panel value and its panel an
+   id of "panel-" + that same value, and this code will handle the rest.
+===================================================================== */
+document.querySelectorAll('.game-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.game-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.game-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.panel).classList.add('active');
+  });
+});
+
+/* =====================================================================
+   THE DOWN PAYMENT DIAL (one of the three interactive "games")
+   Same math as the Hero Ticker above (reuses cmhcRate/suggestedRate/
+   monthlyPayment so it stays in sync with the rest of the site), but
+   drawn as a semicircular gauge instead of plain numbers, and it pulls
+   the home price from the Hero Ticker's price slider (hpSlider) rather
+   than having its own - so changing the price up top also updates this.
+
+   The gauge arc: ARC_LEN (315) is NOT the literal path length (the actual
+   drawn arc path measures ~345.6 units via getTotalLength() - you can
+   check this yourself in a browser console with
+   document.getElementById('dial-arc').getTotalLength()). 315 is instead
+   a deliberately-chosen slightly-smaller number so the gauge visually
+   stops a little short of wrapping all the way around, which looks
+   better than a perfect full sweep. If you redraw the arc path in
+   index.html with a different shape/size, you'll likely want to
+   re-measure with getTotalLength() and pick a new ARC_LEN a bit below
+   that new full length, the same way this one was chosen.
+   The "frac" line below assumes the down payment slider's range is
+   5%-30% (i.e. (pct-5)/25 - the 25 is the span from 5 to 30). If you
+   ever change the slider's min/max in index.html, update those two
+   numbers here to match, or the gauge will fill incorrectly.
+===================================================================== */
+const dialSlider = document.getElementById('dial-slider');
+const dialRateSlider = document.getElementById('dial-rate-slider');
+const dialArc = document.getElementById('dial-arc');
+const ARC_LEN = 315;
+let dialRateTouched = false;
+dialRateSlider.addEventListener('input', ()=>{ dialRateTouched = true; updateDial(); });
+
+function updateDial(){
+  const pct = parseFloat(dialSlider.value);
+  const price = parseFloat(hpSlider.value);
+  if(!dialRateTouched){ dialRateSlider.value = suggestedRate(pct); updateSliderFill(dialRateSlider); }
+  const rate = parseFloat(dialRateSlider.value);
+  const down = price*pct/100;
+  const base = price - down;
+  const cRate = cmhcRate(pct);
+  const cmhc = base*cRate;
+  const total = base + cmhc;
+  const m = monthlyPayment(total, rate, 25);
+
+  document.getElementById('dial-pct').textContent = pct + '%';
+  document.getElementById('dial-rate-val').textContent = rate.toFixed(2) + '%';
+  document.getElementById('dial-price').textContent = fmt(price);
+  document.getElementById('dial-down').textContent = fmt(down);
+  document.getElementById('dial-cmhc').textContent = cmhc>0 ? fmt(cmhc) : '$0 - not required';
+  document.getElementById('dial-total').textContent = fmt(total);
+  document.getElementById('dial-monthly').textContent = fmt(m) + '/mo';
+  document.getElementById('dial-required').textContent = pct>=20 ? 'No - 20%+ down' : 'Yes - under 20% down';
+
+  // (pct-5)/25 assumes the slider's range is 5 to 30 - see note above
+  const frac = Math.min(1, Math.max(0,(pct-5)/25));
+  dialArc.setAttribute('stroke-dasharray', (frac*ARC_LEN) + ' 600');
+}
+dialSlider.addEventListener('input', updateDial);
+hpSlider.addEventListener('input', updateDial);
+updateDial();
+
+/* =====================================================================
+   RENT VS BUY (second of the three interactive "games")
+   Compares the running total cost of renting vs. buying over a chosen
+   number of years. Two growth assumptions are baked directly into the
+   math below rather than pulled from named constants - both currently
+   hardcoded as 1.03 (3% per year):
+     - line with "r *= 1.03"          -> annual rent increase assumption
+     - line with "Math.pow(1.03,years)" -> annual home appreciation assumption
+   If you want to change either assumption, you have to edit the 1.03
+   directly at each of those two spots (they're intentionally separate
+   in case rent growth and home appreciation ever need different rates -
+   right now they happen to both be 3%, which is a coincidence of the
+   current assumptions, not a rule). This is a simplified illustrative
+   comparison, not a real investment projection - the on-page copy
+   already says as much to visitors.
+===================================================================== */
+const rvbRent = document.getElementById('rvb-rent');
+const rvbPrice = document.getElementById('rvb-price');
+const rvbYears = document.getElementById('rvb-years');
+const rvbRate = document.getElementById('rvb-rate');
+function updateRVB(){
+  const rent0 = parseFloat(rvbRent.value);
+  const price = parseFloat(rvbPrice.value);
+  const years = parseFloat(rvbYears.value);
+  const rate = parseFloat(rvbRate.value);
+
+  document.getElementById('rvb-rent-val').textContent = fmt(rent0)+'/mo';
+  document.getElementById('rvb-price-val').textContent = fmt(price);
+  document.getElementById('rvb-years-val').textContent = years + ' years';
+  document.getElementById('rvb-rate-val').textContent = rate.toFixed(2) + '%';
+
+  let totalRent = 0; let r = rent0;
+  for(let y=0;y<years;y++){ totalRent += r*12; r *= 1.03; } // 1.03 = assumed 3%/yr rent growth
+
+  const down = price*0.20; // assumes 20% down (no CMHC) for this comparison specifically
+  const mtg = price - down;
+  const m = monthlyPayment(mtg, rate, 25); // 25 = years, i.e. a 25-year amortization
+  const i = Math.pow(1+(rate/100)/2,2/12)-1;
+  let bal = mtg; let principalPaid = 0;
+  const totalMonths = Math.min(years*12, 25*12); // caps at 25 years even if the slider asks for more
+  for(let mo=0; mo<totalMonths; mo++){ const interest=bal*i; const princ=m-interest; bal-=princ; principalPaid+=princ; }
+  const appreciation = price*(Math.pow(1.03,years)-1); // 1.03 = assumed 3%/yr home appreciation
+  const equity = down + principalPaid + appreciation;
+
+  document.getElementById('rvb-buy-val').textContent = fmt(equity);
+  document.getElementById('rvb-rent-total').textContent = fmt(totalRent);
+  const maxV = Math.max(equity, totalRent, 1);
+  document.getElementById('rvb-buy-bar').style.height = Math.max(6,(equity/maxV*100)) + '%';
+  document.getElementById('rvb-rent-bar').style.height = Math.max(6,(totalRent/maxV*100)) + '%';
+  const diff = equity - totalRent;
+  document.getElementById('rvb-summary').textContent = diff>=0
+    ? `Buying builds ~${fmt(diff)} more in equity than the rent paid over ${years} years (before costs like maintenance & closing).`
+    : `Over ${years} years, rent paid is ~${fmt(-diff)} more than the equity built - factor in flexibility & maintenance savings too.`;
+}
+[rvbRent, rvbPrice, rvbYears, rvbRate].forEach(el=>el.addEventListener('input', updateRVB));
+updateRVB();
+
+/* =====================================================================
+   AFFORDABILITY (third of the three interactive "games")
+   Estimates a rough maximum home price based on income and existing
+   debt, using the two debt-service ratios Canadian lenders commonly use
+   to qualify borrowers:
+     - GDS (Gross Debt Service): housing costs shouldn't exceed 39% of
+       gross monthly income (the 0.39 below)
+     - TDS (Total Debt Service): housing costs PLUS all other debt
+       payments shouldn't exceed 44% of gross monthly income (the 0.44
+       below, minus whatever debt the visitor entered)
+   The lower of the two limits wins (maxHousing = the smaller number),
+   same as how lenders actually calculate it. These 39%/44% figures are
+   the commonly-cited conventional lending benchmarks - if guidelines
+   change, or if you want to show insured-mortgage limits instead
+   (which can differ), update the 0.39 and 0.44 here.
+
+   This is a simplified pre-qualification gut-check, not an actual
+   approval calculation - real lenders also weigh credit score, income
+   type/stability, property type, and their own specific policies.
+===================================================================== */
+const afIncome = document.getElementById('af-income');
+const afDebt = document.getElementById('af-debt');
+const afDown = document.getElementById('af-down');
+const afRate = document.getElementById('af-rate');
+function updateAfford(){
+  const income = parseFloat(afIncome.value);
+  const debt = parseFloat(afDebt.value);
+  const down = parseFloat(afDown.value);
+  const qualifyRate = parseFloat(afRate.value);
+
+  document.getElementById('af-income-val').textContent = fmt(income)+'/yr';
+  document.getElementById('af-debt-val').textContent = fmt(debt)+'/mo';
+  document.getElementById('af-down-val').textContent = fmt(down);
+  document.getElementById('af-rate-val').textContent = qualifyRate.toFixed(2) + '%';
+
+  const monthlyIncome = income/12;
+  const maxGDS = monthlyIncome*0.39;
+  const maxTDS = monthlyIncome*0.44 - debt;
+  const maxHousing = Math.max(0, Math.min(maxGDS, maxTDS));
+
+  const n = 25*12;
+  const i = Math.pow(1+(qualifyRate/100)/2,2/12)-1;
+  const maxMortgage = maxHousing * (Math.pow(1+i,n)-1) / (i*Math.pow(1+i,n));
+  const maxPrice = maxMortgage + down;
+
+  document.getElementById('af-max-housing').textContent = fmt(maxHousing)+'/mo';
+  document.getElementById('af-max-mortgage').textContent = fmt(maxMortgage);
+  document.getElementById('af-max-price').textContent = fmt(maxPrice);
+  document.getElementById('af-meter').style.width = Math.min(100, (maxPrice/1500000)*100) + '%';
+}
+[afIncome, afDebt, afDown, afRate].forEach(el=>el.addEventListener('input', updateAfford));
+updateAfford();
+
+/* =====================================================================
+   DOCUMENT CHECKLIST - rendering logic. The actual list of scenarios and
+   required documents lives in DOC_SCENARIOS near the top of this file
+   (search for "DOC_SCENARIOS" if you want to add/edit a scenario or
+   document - that's the only place you need to touch for that).
+   Everything below just draws tabs from its keys, draws a checklist from
+   the active tab's array, and tracks which boxes are checked per-tab in
+   checkedState so switching tabs and back doesn't lose your progress.
+===================================================================== */
+const docTabsEl = document.getElementById('doc-tabs');
+const docListEl = document.getElementById('doc-list');
+const checkedState = {};
+let currentScenario = Object.keys(DOC_SCENARIOS)[0];
+
+function renderDocTabs(){
+  docTabsEl.innerHTML = '';
+  Object.keys(DOC_SCENARIOS).forEach(name=>{
+    const tab = document.createElement('div');
+    tab.className = 'doc-tab' + (name===currentScenario ? ' active' : '');
+    tab.textContent = name;
+    tab.onclick = ()=>{ currentScenario = name; renderDocTabs(); renderDocList(); };
+    docTabsEl.appendChild(tab);
+  });
+}
+function renderDocList(){
+  docListEl.innerHTML = '';
+  const items = DOC_SCENARIOS[currentScenario];
+  if(!checkedState[currentScenario]) checkedState[currentScenario] = new Array(items.length).fill(false);
+  items.forEach((text, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'doc-item' + (checkedState[currentScenario][idx] ? ' checked' : '');
+    row.innerHTML = `<div class="doc-check">${checkedState[currentScenario][idx] ? '&#10003;' : ''}</div><div class="doc-text">${text}</div>`;
+    row.onclick = ()=>{ checkedState[currentScenario][idx] = !checkedState[currentScenario][idx]; renderDocList(); };
+    docListEl.appendChild(row);
+  });
+  const doneCount = checkedState[currentScenario].filter(Boolean).length;
+  const countEl = document.getElementById('doc-count');
+  countEl.textContent = `${doneCount} / ${items.length} ready`;
+  countEl.classList.toggle('complete', doneCount === items.length);
+  document.getElementById('doc-meter').style.width = (doneCount/items.length*100) + '%';
+}
+renderDocTabs(); renderDocList();
+
+/* ===================== CASE STUDIES (Mortgage Diaries) =====================
+   Shows CASES_PER_PAGE cards at a time with numbered page buttons underneath,
+   instead of dumping every case study on screen at once. To change how many
+   show per page, just edit CASES_PER_PAGE below - everything else (page
+   count, button rendering, which cases show) recalculates on its own. */
+const caseGrid = document.getElementById('case-grid');
+const casePagination = document.getElementById('case-pagination');
 const CASES_PER_PAGE = 4;
-function initCases(){
-  const grid = $('#case-grid');
-  if(!grid || typeof CASE_STUDIES === 'undefined') return;
-  const pager = $('#case-pagination');
-  let page = 1;
+let currentCasePage = 1;
 
-  function render(){
-    const pages = Math.ceil(CASE_STUDIES.length / CASES_PER_PAGE);
-    const start = (page-1)*CASES_PER_PAGE;
-    const slice = CASE_STUDIES.slice(start, start+CASES_PER_PAGE);
+function renderCases(){
+  const totalPages = Math.ceil(CASE_STUDIES.length / CASES_PER_PAGE);
+  const startIdx = (currentCasePage - 1) * CASES_PER_PAGE;
+  const pageItems = CASE_STUDIES.slice(startIdx, startIdx + CASES_PER_PAGE);
 
-    grid.innerHTML = slice.map((c,k) => {
-      const idx = start+k;
-      const stats = (c.stats||[]).map(s=>`<div><strong>${s[1]}</strong>${s[0]}</div>`).join('');
-      return `<article class="card case-card" data-case="${idx}" tabindex="0" role="button" aria-label="Read case study: ${c.title}">
-        <span class="tag">${c.tag}</span><h3>${c.title}</h3><p>${c.preview}</p>
-        <div class="stat-preview">${stats}</div></article>`;
-    }).join('');
+  caseGrid.innerHTML = '';
+  pageItems.forEach((c, i)=>{
+    const idx = startIdx + i; // real index into CASE_STUDIES, for the modal lookup
+    const card = document.createElement('div');
+    card.className = 'case-card';
+    const statsHtml = c.stats.map(s=>`<div><strong>${s[1]}</strong>${s[0]}</div>`).join('');
+    card.innerHTML = `<div class="tag">${c.tag}</div><h3>${c.title}</h3><p>${c.preview}</p><div class="stat-preview">${statsHtml}</div>`;
+    card.onclick = ()=>openCaseModal(idx);
+    caseGrid.appendChild(card);
+  });
 
-    $$('[data-case]', grid).forEach(el => {
-      const i = +el.dataset.case;
-      const open = () => {
-        const c = CASE_STUDIES[i];
-        const stats = `<div class="case-stats">${(c.stats||[]).map(s=>`<div><strong>${s[1]}</strong>${s[0]}</div>`).join('')}</div>`;
-        openModal({ tag:c.tag, title:c.title, meta:'Case study · dramatization, details changed',
-          html: stats + (c.content||[]).map(t=>`<p>${t}</p>`).join('') });
-      };
-      el.addEventListener('click', open);
-      el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
-    });
-
-    if(pager){
-      pager.innerHTML = pages > 1
-        ? Array.from({length:pages}, (_,k)=>{
-            const n = k+1;
-            return `<button class="page-btn" data-page="${n}" aria-current="${n===page}" aria-label="Page ${n} of case studies">${n}</button>`;
-          }).join('')
-        : '';
-      $$('[data-page]', pager).forEach(b => b.addEventListener('click', () => {
-        page = +b.dataset.page; render();
-        grid.scrollIntoView({behavior:'smooth', block:'start'});
-      }));
+  // build the numbered page buttons (1, 2, 3...) below the grid
+  casePagination.innerHTML = '';
+  if(totalPages > 1){
+    for(let p=1; p<=totalPages; p++){
+      const btn = document.createElement('button');
+      btn.className = 'case-page-btn' + (p===currentCasePage ? ' active' : '');
+      btn.textContent = p;
+      btn.setAttribute('aria-label', 'Show page ' + p + ' of mortgage diaries');
+      btn.onclick = ()=>{ currentCasePage = p; renderCases(); document.getElementById('case-grid').scrollIntoView({behavior:'smooth', block:'start'}); };
+      casePagination.appendChild(btn);
     }
   }
-  render();
 }
+function openCaseModal(idx){
+  const c = CASE_STUDIES[idx];
+  document.getElementById('modal-tag').textContent = c.tag;
+  document.getElementById('modal-title').textContent = c.title;
+  document.getElementById('modal-meta').textContent = 'Case Study';
+  const statsHtml = `<div class="case-stats">${c.stats.map(s=>`<div><strong>${s[1]}</strong>${s[0]}</div>`).join('')}</div>`;
+  document.getElementById('modal-content').innerHTML = statsHtml + c.content.map(p=>`<p>${p}</p>`).join('');
+  document.getElementById('modal-overlay').classList.add('active');
+}
+renderCases();
 
-/* ---------- boot ----------
-   Everything runs after the DOM is parsed. Each init is guarded, and
-   wrapped so one failure can never silently kill the rest. */
-function boot(){
-  [initNav, initModal, initSliderFills, initHeroCalc, initAffordability,
-   initRentVsBuy, initDial, initTabs, initDocs, initMap, initRateChart,
-   initBlog, initCases].forEach(fn => {
-    try { fn(); } catch(err){ console.error('[init] ' + fn.name + ':', err); }
+/* =====================================================================
+   BLOG - rendering logic. The actual posts live in BLOG_POSTS at the
+   very top of this file (search "BLOG_POSTS" to add/edit a post) - this
+   section just draws a card for each one and wires up the click-to-open
+   modal. Unlike the paginated Mortgage Diaries section, this one shows
+   every post at once in a horizontal scroller (see .blog-grid /
+   .blog-scroll-btn in style.css) rather than paging - if you'd rather
+   paginate the blog the same way the case studies are paginated, you
+   could copy the renderCases() pattern above and adapt it here.
+===================================================================== */
+const blogGrid = document.getElementById('blog-grid');
+function renderBlog(){
+  blogGrid.innerHTML = '';
+  BLOG_POSTS.forEach((post, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'blog-card';
+    card.innerHTML = `<div class="tag">${post.tag}</div><h3>${post.title}</h3><p>${post.excerpt}</p><div class="meta">${post.date}</div>`;
+    card.onclick = ()=>openBlogModal(idx);
+    blogGrid.appendChild(card);
   });
 }
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', boot);
-}else{
-  boot();
+function openBlogModal(idx){
+  const post = BLOG_POSTS[idx];
+  document.getElementById('modal-tag').textContent = post.tag;
+  document.getElementById('modal-title').textContent = post.title;
+  document.getElementById('modal-meta').textContent = post.date;
+  document.getElementById('modal-content').innerHTML = post.content.map(p=>`<p>${p}</p>`).join('');
+  document.getElementById('modal-overlay').classList.add('active');
 }
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('active'); }
+document.getElementById('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='modal-overlay') closeModal(); });
+renderBlog();
