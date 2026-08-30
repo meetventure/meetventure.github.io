@@ -1,24 +1,22 @@
-# ============================================================
-# robots.txt for meetventure.ca
-#
-# This file tells search engine crawlers what they may access.
-# For a small marketing site like this one, you want crawlers to
-# see EVERYTHING - there is nothing to hide, and blocking things
-# by accident is the most common way people damage their own SEO.
-#
-# Key thing to know: do NOT block style.css or script.js. Google
-# renders your page like a browser does to judge mobile-friendliness
-# and layout. If it cannot load your CSS and JS, it sees a broken
-# page and may rank you lower. Older SEO guides told people to block
-# these - that advice is long out of date.
-# ============================================================
-
+# meetventure.ca
 User-agent: *
 Allow: /
 
-# ------------------------------------------------------------
-# Sitemap location. Search engines look for this line
-# automatically, which is why it is worth having even after you
-# submit the sitemap manually in Google Search Console.
-# ------------------------------------------------------------
+# AI search crawlers — these drive an increasing share of discovery.
+# Remove any you'd rather not be cited by.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 Sitemap: https://meetventure.ca/sitemap.xml
