@@ -600,8 +600,8 @@ footer strong{color:var(--text);font-weight:600}
       <div class="intro-body">
         <div class="intro-h">Hi, I'm Meet.</div>
         <div class="intro-role">Mortgage Agent · Professional Number-Explainer · Occasional Dinner Party Bore</div>
-        <p>Yes, "Meet" - like the verb. I've heard every joke ("nice to Meet you, Meet") and I still laugh every single time, so feel free.</p>
-        <p>I got into this because I love the moment a client's face changes from "I have no idea what any of this means" to "oh - <em>that's</em> how it works." I work with clients across Ontario, in English, Hindi, Punjabi and Gujarati.</p>
+        <p>I’m Meet. My job is to take the most confusing part of adulting - Mortgages - and make it feel like something you can actually understand without crying. I love the moment when clients go from “This is Nonsense” to “Wait… I totally get this.”</p>
+        <p>I work with clients across Ontario in English, Hindi, Gujarati, and Punjabi - and yes, I explain everything with patience, jokes, and zero judgment for “silly questions.” (Spoiler: There are no silly questions. Only silly mortgage rules.)</p>
         <div class="intro-contact" id="introContact"></div>
       </div>
       <div class="intro-social">
@@ -740,7 +740,7 @@ footer strong{color:var(--text);font-weight:600}
             <div class="f-top"><label for="t1a">Amortization</label></div>
             <select class="inp" id="t1a"><option value="25">25 years</option><option value="30">30 years</option></select>
           </div>
-          <p class="tool-note">Below 20% down, mortgage insurance is mandatory and gets added to your loan - so you pay interest on it for the whole term. This shows what each step actually costs.</p>
+          <p class="tool-note">Under 20% down, insurance is required and added to your mortgage. This outlines how each step impacts the numbers.</p>
         </div>
         <div>
           <table class="ladder" id="t1out"></table>
@@ -818,11 +818,19 @@ footer strong{color:var(--text);font-weight:600}
             <div class="f-top"><label for="t3r">Contract Rate</label><span class="tk-l" id="t3qH"></span></div>
             <div class="inp-wrap"><span class="inp-sfx">%</span><input class="inp" type="number" id="t3r" value="4.24" step="0.01" inputmode="decimal"></div>
           </div>
+          <div class="f">
+            <div class="f-top"><label for="t3a">Amortization</label></div>
+            <select class="inp" id="t3a">
+              <option value="25" selected>25 years</option>
+              <option value="30">30 years</option>
+            </select>
+          </div>
         </div>
         <div>
           <table class="ladder" id="t3out"></table>
           <div class="tool-verdict" id="t3v"></div>
-          <p class="tool-note">This runs the same two ratios lenders use: GDS caps housing costs at 39% of gross income, TDS caps housing plus all other debt at 44%. Whichever binds first is your ceiling. It's a starting point, not a pre-approval - every lender tweaks these rules.</p>
+          <div class="flag" id="t3flag" hidden></div>
+          <p class="tool-note">Uses lender ratios: GDS 39%, TDS 44%. Tighter one sets your limit. It’s a guide, not a pre‑approval, and lenders vary their rules..</p>
         </div>
       </div>
     </div>
@@ -1318,14 +1326,14 @@ function run(source){
   const fp = $("flagPst");
   if(prem > 0){
     fp.hidden = false;
-    fp.textContent = `Ontario charges 8% PST on the insurance premium — about ${cash(pst)}. That's payable in cash at closing and cannot be added to the mortgage. Most calculators skip it.`;
+    fp.textContent = `Ontario adds 8% PST to the insurance premium - about ${cash(pst)}, paid in cash at closing. Most calculators don’t include it.`;
   } else fp.hidden = true;
 
   const qual = Math.max(rate + 2, 5.25);
   $("calcFoot").innerHTML =
-    `Principal and interest only. Excludes property tax, heating, condo fees and insurance. ` +
-    `Lenders will also qualify you at the stress-test rate of <b style="color:var(--text)">${qual.toFixed(2)}%</b> ` +
-    `(about ${cash(pmt(total, qual, years))}/mo) — that's the number that decides your approval, not the one above. ` +
+    `Principal + interest only; excludes tax, heating, condo fees, and insurance. ` +
+    `Lenders assess you at <b style="color:var(--text)">${qual.toFixed(2)}%</b> ` +
+    `(about ${cash(pmt(total, qual, years))}/mo) for qualification. ` +
     `Estimate only, not a quote.`;
 }
 
@@ -1395,7 +1403,7 @@ function t1(){
     if(pr) lowPrem = lowBase*pr;
   }
   $("t1v").innerHTML = lowPrem > 0
-    ? `<b>${cash(lowPrem)}</b><span>That's the insurance premium at ${at5}% down on a ${cash(price)} home. It gets added to your mortgage, so you pay interest on it for the full amortization. Ontario also charges 8% PST on it - about ${cash(lowPrem*0.08)} - in cash at closing.</span>`
+    ? `<b>${cash(lowPrem)}</b><span>That's the insurance premium at ${at5}% down on a ${cash(price)} home. It’s added to the mortgage. Ontario charges 8% PST - about ${cash(lowPrem*0.08)} - in cash at closing.</span>`
     : `<b>No insurance needed</b><span>At ${cash(need)} or more down on this price you're at or above 20%, so no mortgage insurance premium applies.</span>`;
 }
 
@@ -1451,6 +1459,7 @@ function t2(){
 function t3(){
   const inc = n("t3inc"), debt = n("t3debt"), dp = n("t3dp");
   const tax = n("t3tax"), heat = n("t3heat"), rate = Math.max(0.5, n("t3r"));
+  const yrs = +$("t3a").value;
   const qual = Math.max(rate + 2, 5.25);
   $("t3qH").textContent = "qualifies at " + qual.toFixed(2) + "%";
 
@@ -1460,38 +1469,57 @@ function t3(){
   const room    = Math.min(gdsRoom, tdsRoom);
   const piMax   = Math.max(0, room - tax/12 - heat);
 
-  const i = mRate(qual), nP = 25*12;
+  const i = mRate(qual), nP = yrs*12;
   const principal = i===0 ? piMax*nP : piMax*(1-Math.pow(1+i,-nP))/i;
 
   /* Solve for the price where down payment + insured mortgage = price. */
   let price = principal + dp;
   for(let k=0;k<24;k++){
     const need = minDown(price);
-    const down = Math.min(dp, price);
-    if(down < need){ price = price*0.985; continue; }
-    const base = price-down, ltv = base/price*100;
+    const d = Math.min(dp, price);
+    if(d < need){ price = price*0.985; continue; }
+    const b = price-d, l = b/price*100;
     let pr = 0;
-    if(price <= 1500000 && ltv > 80){ pr = premiumRate(ltv,25) || 0; }
-    const guess = down + principal/(1+pr);
+    if(price <= 1500000 && l > 80){ pr = premiumRate(l, yrs) || 0; }
+    const guess = d + principal/(1+pr);
     if(Math.abs(guess-price) < 250){ price = guess; break; }
     price = guess;
   }
   price = Math.max(0, price);
-  const actualPI = pmt(Math.max(0, price-dp), rate, 25);
-  const binding = gdsRoom <= tdsRoom ? "GDS (39%)" : "TDS (44%)";
+
+  /* Rebuild the real loan, premium included — this is what you actually pay on. */
+  const down = Math.min(dp, price);
+  const base = Math.max(0, price - down);
+  const ltv  = price > 0 ? base/price*100 : 0;
+  let prem = 0;
+  if(price <= 1500000 && ltv > 80){
+    const pr = premiumRate(ltv, yrs); if(pr) prem = base*pr;
+  }
+  const insured  = prem > 0;
+  const actualPI = pmt(base + prem, rate, yrs);
+  const binding  = gdsRoom <= tdsRoom ? "GDS (39%)" : "TDS (44%)";
 
   $("t3out").innerHTML =
-    `<thead><tr><th>Lender's math</th><th>Monthly</th></tr></thead><tbody>` +
+    `<thead><tr><th>Lender's Math</th><th>Monthly</th></tr></thead><tbody>` +
     `<tr><td>Gross Monthly Income</td><td>${cash(monthly)}</td></tr>` +
     `<tr><td>GDS · 39%</td><td>${cash(gdsRoom)}</td></tr>` +
-    `<tr><td>TDS · 44%</td><td>${cash(tdsRoom)}</td></tr>` +
+    `<tr><td>TDS · 44% Less Debts</td><td>${cash(tdsRoom)}</td></tr>` +
     `<tr class="hl"><td>Binding Limit · ${binding}</td><td>${cash(room)}</td></tr>` +
-    `<tr><td>Less Tax and Heat</td><td>−${cash(tax/12+heat)}</td></tr>` +
+    `<tr><td>Less Tax & Heat</td><td>−${cash(tax/12+heat)}</td></tr>` +
     `<tr><td>Room for Principal &amp; Interest</td><td>${cash(piMax)}</td></tr>` +
     `</tbody>`;
 
   $("t3v").innerHTML =
-    `<b>${cash(price)}</b><span>Estimated maximum purchase price with ${cash(dp)} down. Your actual payment at ${rate.toFixed(2)}% would be about ${cash(actualPI)}/mo in principal and interest - lower than the ${cash(piMax)} you qualified at, because lenders test you at ${qual.toFixed(2)}%. That gap is your buffer, not your budget.</span>`;
+    `<b>${cash(price)}</b><span>With ${cash(dp)} over ${yrs}-year amortization. ` +
+    `Your payment at ${rate.toFixed(2)}% is about ${cash(actualPI)}/mo` +
+    (insured ? `, including the ${cash(prem)} insurance premium` : ``) +
+    `. Lenders qualify you at ${qual.toFixed(2)}%, which is why you qualified at ${cash(piMax)}. That gap is your buffer, not your budget.</span>`;
+
+  const f = $("t3flag");
+  if(yrs > 25 && insured){
+    f.hidden = false;
+    f.textContent = `A 30-year amortization with less than 20% down is only available to first-time buyers. With 20% or more down, no restriction applies.`;
+  } else f.hidden = true;
 }
 
 /* --- Tool 4 · Renewal Calculator --- */
@@ -1530,7 +1558,7 @@ function t4(){
   });
 });
 ["t2rent","t2price","t2dp","t2r","t2y","t2g","t2c"].forEach(id=>$(id).addEventListener("input", t2));
-["t3inc","t3debt","t3dp","t3tax","t3heat","t3r"].forEach(id=>$(id).addEventListener("input", t3));
+["t3inc","t3debt","t3dp","t3tax","t3heat","t3r","t3a"].forEach(id=>$(id).addEventListener("input", t3));
 ["t4bal","t4cur","t4yrs","t4off","t4mkt"].forEach(id=>$(id).addEventListener("input", t4));
 
 $("t1r").value = CONFIG.rates.fixed5; $("t1rR").value = CONFIG.rates.fixed5;
